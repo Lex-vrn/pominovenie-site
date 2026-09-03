@@ -1,38 +1,43 @@
 export default function Home() {
   return (
-    <main className="min-h-screen flex flex-col items-center justify-center px-6 py-12 bg-[#FAF7F2]">
-      <div className="max-w-md w-full text-center">
-        <h1 className="text-3xl font-semibold text-[#5C1A1A] mb-3">
-          Поминовение
-        </h1>
-        <p className="text-gray-600 mb-10 leading-relaxed">
-          Напомним о памятных днях после смерти близкого человека и подскажем,
-          какие молитвы читать
-        </p>
+    <div className="min-h-screen bg-gradient-to-b from-[#2C1810] to-[#1a0f0a] text-white">
+      <div className="container mx-auto px-4 py-12 max-w-2xl">
 
-        <div className="flex flex-col gap-4">
+        <header className="text-center mb-12">
+          <h1 className="text-4xl md:text-5xl font-bold mb-4 text-[#D4AF37]">
+            Поминовение
+          </h1>
+          <p className="text-lg text-gray-300">
+            Православные традиции памяти усопших
+          </p>
+        </header>
+
+        <div className="space-y-4 mb-8">
           
-            href="/add"
-            className="block w-full py-4 px-6 rounded-xl bg-[#8C2F2F] text-white font-medium text-lg shadow-sm hover:bg-[#7a2828] transition"
+           <a href="/add"
+            className="block w-full py-4 px-6 rounded-xl bg-[#8C2F2F] text-white font-medium text-lg text-center hover:bg-[#A63939] transition-colors shadow-lg"
           >
-            Добавить памятную дату
+            📅 Напоминания
           </a>
 
           
-            href="/library"
-            className="block w-full py-4 px-6 rounded-xl bg-white border border-[#8C2F2F] text-[#8C2F2F] font-medium text-lg hover:bg-[#f5eaea] transition"
+            <a href="/traditions"
+            className="block w-full py-4 px-6 rounded-xl bg-[#4A5D23] text-white font-medium text-lg text-center hover:bg-[#5A6D33] transition-colors shadow-lg"
           >
-            Библиотека молитв
+            📖 Традиции
           </a>
+        </div>
 
+        <footer className="text-center mt-12">
           
-            href="/about"
-            className="block w-full py-4 px-6 rounded-xl bg-white border border-gray-300 text-gray-700 font-medium text-lg hover:bg-gray-50 transition"
+            <a href="/about"
+            className="text-[#D4AF37] hover:text-[#F4CF57] underline text-sm"
           >
             О проекте
           </a>
-        </div>
+        </footer>
+
       </div>
-    </main>
+    </div>
   );
-}
+  }
