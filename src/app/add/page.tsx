@@ -1,52 +1,41 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import OneSignal from 'react-onesignal'
-import { calculateMemorialDates, formatDate } from '@/lib/dates'
 
-// Пытается получить ID подписчика несколько раз с паузами,
-// потому что OneSignal SDK может выдать его не сразу после загрузки страницы
-async function waitForSubscriberId(maxAttempts = 10, intervalMs = 400): Promise<string | null> {
-  for (let attempt = 0; attempt < maxAttempts; attempt++) {
-    const id = OneSignal.User?.PushSubscription?.id
-    if (id) {
-      return id
+type Status = 'idle' | 'saving' | 'success' | 'success_no_push' | 'error'
+
+// Ждём, пока OneSignal реально выдаст id подписки — он появляется не сразу
+// после разрешения, а с задержкой в 1-3 секунды (та самая гонка состояний).
+async function waitForPushSubscriptionId(timeoutMs = 8000): Promise<string | null> {
+  const existing = OneSignal.User.PushSubscription.id
+  if (existing) return existing
+
+  return new Promise((resolve) => {
+    const timeout = setTimeout(() => {
+      OneSignal.User.PushSubscription.removeEventListener('change', handler)
+      resolve(null)
+    }, timeoutMs)
+
+    function handler() {
+      const id = OneSignal.User.PushSubscription.id
+      if (id) {
+        clearTimeout(timeout)
+        OneSignal.User.PushSubscription.removeEventListener('change', handler)
+        resolve(id)
+      }
     }
-    await new Promise((resolve) => setTimeout(resolve, intervalMs))
-  }
-  return null
+
+    OneSignal.User.PushSubscription.addEventListener('change', handler)
+  })
 }
 
 export default function AddDate() {
   const [name, setName] = useState('')
   const [deathDate, setDeathDate] = useState('')
   const [contact, setContact] = useState('')
-  const [status, setStatus] = useState<'idle' | 'saving' | 'success' | 'error'>('idle')
-  const [pushSubscriberId, setPushSubscriberId] = useState<string | null>(null)
-  const [pushReady, setPushReady] = useState(false)
-
-  useEffect(() => {
-    const currentId = OneSignal.User?.PushSubscription?.id
-    if (currentId) {
-      setPushSubscriberId(currentId)
-      setPushReady(true)
-    }
-
-    const handleChange = () => {
-      const id = OneSignal.User?.PushSubscription?.id
-      if (id) {
-        setPushSubscriberId(id)
-        setPushReady(true)
-      }
-    }
-
-    OneSignal.User.PushSubscription.addEventListener('change', handleChange)
-
-    return () => {
-      OneSignal.User.PushSubscription.removeEventListener('change', handleChange)
-    }
-  }, [])
+  const [status, setStatus] = useState<Status>('idle')
 
   const handleSave = async () => {
     if (!name || !deathDate) {
@@ -56,42 +45,46 @@ export default function AddDate() {
 
     setStatus('saving')
 
-    // Если ID ещё не пришёл через событие — ждём его несколько секунд напрямую
-    let currentSubscriberId = pushSubscriberId
-    if (!currentSubscriberId) {
-      currentSubscriberId = await waitForSubscriberId()
+    try {
+      await OneSignal.Notifications.requestPermission()
+    } catch (e) {
+      console.error('Ошибка запроса разрешения на уведомления:', e)
     }
+
+    const pushSubscriberId = await waitForPushSubscriptionId(8000)
 
     const { error } = await supabase.from('memorials').insert({
       name: name,
       death_date: deathDate,
       contact: contact,
-      push_subscriber_id: currentSubscriberId,
+      push_subscriber_id: pushSubscriberId,
     })
 
     if (error) {
       console.error('Ошибка сохранения:', error)
       setStatus('error')
-    } else {
-      setStatus('success')
-      setName('')
-      setDeathDate('')
-      setContact('')
+      return
     }
+
+    setStatus(pushSubscriberId ? 'success' : 'success_no_push')
+    setName('')
+    setDeathDate('')
+    setContact('')
   }
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-[#2C1810] to-[#1a0f0a] text-white flex items-center justify-center px-4">
       <div className="w-full max-w-md">
-        <h1 className="text-3xl font-bold text-[#D4AF37] mb-8 text-center">
+        <h1 className="text-3xl font-bold text-[#D4AF37] mb-2 text-center">
           Добавить памятную дату
         </h1>
+        <p className="text-gray-400 text-sm mb-8 text-center">
+          Это бесплатно. Мы пришлём напоминания на 3, 9, 40 день и годовщину.
+        </p>
 
         <div className="space-y-6">
           <div>
-            <label className="block text-gray-300 mb-2">
-              Имя усопшего
-            </label>
+            <label className="block text-gray-300 mb-2">Имя усопшего</label>
             <input
               type="text"
               value={name}
@@ -102,9 +95,7 @@ export default function AddDate() {
           </div>
 
           <div>
-            <label className="block text-gray-300 mb-2">
-              Дата смерти
-            </label>
+            <label className="block text-gray-300 mb-2">Дата смерти</label>
             <input
               type="date"
               value={deathDate}
@@ -114,9 +105,7 @@ export default function AddDate() {
           </div>
 
           <div>
-            <label className="block text-gray-300 mb-2">
-              Контакт (необязательно)
-            </label>
+            <label className="block text-gray-300 mb-2">Контакт (необязательно)</label>
             <input
               type="text"
               value={contact}
@@ -125,12 +114,6 @@ export default function AddDate() {
               className="w-full py-3 px-4 rounded-xl bg-white/10 border border-white/20 text-white placeholder-gray-400 focus:outline-none focus:border-[#D4AF37]"
             />
           </div>
-
-          {!pushReady && (
-            <p className="text-yellow-400/80 text-sm text-center">
-              Настраиваем уведомления, подождите пару секунд перед сохранением…
-            </p>
-          )}
 
           <button
             onClick={handleSave}
@@ -141,8 +124,19 @@ export default function AddDate() {
           </button>
 
           {status === 'success' && (
-            <p className="text-green-400 text-center">Дата сохранена!</p>
+            <p className="text-green-400 text-center">
+              Дата сохранена! Уведомления подключены.
+            </p>
           )}
+
+          {status === 'success_no_push' && (
+            <p className="text-yellow-400 text-center">
+              Дата сохранена, но уведомления не подключились. Проверьте, что
+              разрешили уведомления в браузере, и попробуйте сохранить ещё раз
+              позже — данные не потеряются.
+            </p>
+          )}
+
           {status === 'error' && (
             <p className="text-red-400 text-center">
               Ошибка — проверьте, что имя и дата заполнены
