@@ -1,15 +1,52 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { supabase } from '@/lib/supabase'
 import OneSignal from 'react-onesignal'
 import { calculateMemorialDates, formatDate } from '@/lib/dates'
+
+// Пытается получить ID подписчика несколько раз с паузами,
+// потому что OneSignal SDK может выдать его не сразу после загрузки страницы
+async function waitForSubscriberId(maxAttempts = 10, intervalMs = 400): Promise<string | null> {
+  for (let attempt = 0; attempt < maxAttempts; attempt++) {
+    const id = OneSignal.User?.PushSubscription?.id
+    if (id) {
+      return id
+    }
+    await new Promise((resolve) => setTimeout(resolve, intervalMs))
+  }
+  return null
+}
 
 export default function AddDate() {
   const [name, setName] = useState('')
   const [deathDate, setDeathDate] = useState('')
   const [contact, setContact] = useState('')
   const [status, setStatus] = useState<'idle' | 'saving' | 'success' | 'error'>('idle')
+  const [pushSubscriberId, setPushSubscriberId] = useState<string | null>(null)
+  const [pushReady, setPushReady] = useState(false)
+
+  useEffect(() => {
+    const currentId = OneSignal.User?.PushSubscription?.id
+    if (currentId) {
+      setPushSubscriberId(currentId)
+      setPushReady(true)
+    }
+
+    const handleChange = () => {
+      const id = OneSignal.User?.PushSubscription?.id
+      if (id) {
+        setPushSubscriberId(id)
+        setPushReady(true)
+      }
+    }
+
+    OneSignal.User.PushSubscription.addEventListener('change', handleChange)
+
+    return () => {
+      OneSignal.User.PushSubscription.removeEventListener('change', handleChange)
+    }
+  }, [])
 
   const handleSave = async () => {
     if (!name || !deathDate) {
@@ -19,13 +56,17 @@ export default function AddDate() {
 
     setStatus('saving')
 
-    const pushSubscriberId = OneSignal.User.PushSubscription.id || null
+    // Если ID ещё не пришёл через событие — ждём его несколько секунд напрямую
+    let currentSubscriberId = pushSubscriberId
+    if (!currentSubscriberId) {
+      currentSubscriberId = await waitForSubscriberId()
+    }
 
     const { error } = await supabase.from('memorials').insert({
       name: name,
       death_date: deathDate,
       contact: contact,
-      push_subscriber_id: pushSubscriberId,
+      push_subscriber_id: currentSubscriberId,
     })
 
     if (error) {
@@ -84,6 +125,12 @@ export default function AddDate() {
               className="w-full py-3 px-4 rounded-xl bg-white/10 border border-white/20 text-white placeholder-gray-400 focus:outline-none focus:border-[#D4AF37]"
             />
           </div>
+
+          {!pushReady && (
+            <p className="text-yellow-400/80 text-sm text-center">
+              Настраиваем уведомления, подождите пару секунд перед сохранением…
+            </p>
+          )}
 
           <button
             onClick={handleSave}
