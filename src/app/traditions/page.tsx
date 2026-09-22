@@ -2,6 +2,11 @@ import Link from 'next/link'
 
 const sections = [
   {
+    slug: 'newcomer',
+    title: 'Если вы делаете это впервые',
+    description: 'Не знаете, с чего начать? Начните отсюда — без осуждения и сложных слов',
+  },
+  {
     slug: 'prayers',
     title: 'Молитвы по дням',
     description: '3-й, 9-й, 40-й день и годовщина — полные тексты и пояснения',
