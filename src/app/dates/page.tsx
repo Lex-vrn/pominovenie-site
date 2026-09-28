@@ -11,15 +11,32 @@ interface Memorial {
   death_date: string
 }
 
+const STORAGE_KEY = 'my_memorial_ids'
+
 export default function MyDates() {
   const [memorials, setMemorials] = useState<Memorial[]>([])
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
     const fetchMemorials = async () => {
+      // Берём только те записи, которые создал этот человек на этом устройстве
+      let ids: number[] = []
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY)
+        ids = raw ? JSON.parse(raw) : []
+      } catch {
+        ids = []
+      }
+
+      if (ids.length === 0) {
+        setLoading(false)
+        return
+      }
+
       const { data, error } = await supabase
         .from('memorials')
         .select('id, name, death_date')
+        .in('id', ids)
         .order('created_at', { ascending: false })
 
       if (!error && data) {
@@ -33,9 +50,13 @@ export default function MyDates() {
 
   const getNearestDate = (deathDate: string) => {
     const dates = calculateMemorialDates(deathDate)
-    const now = new Date()
-    const upcoming = dates.find((d) => d.date >= now)
-    return upcoming ? `${upcoming.label} — ${formatDate(upcoming.date)}` : 'Все даты прошли'
+    // Сравниваем с началом сегодняшнего дня, чтобы сегодняшняя дата не «пропадала»
+    const today = new Date()
+    today.setHours(0, 0, 0, 0)
+    const upcoming = dates.find((d) => d.date >= today)
+    return upcoming
+      ? `${upcoming.label} — ${formatDate(upcoming.date)}`
+      : 'Все даты прошли'
   }
 
   return (
@@ -51,7 +72,7 @@ export default function MyDates() {
 
         {!loading && memorials.length === 0 && (
           <p className="text-center text-gray-300 mb-8">
-            Пока нет сохранённых дат
+            На этом устройстве пока нет сохранённых дат
           </p>
         )}
 

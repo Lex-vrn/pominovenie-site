@@ -1,10 +1,26 @@
 'use client'
 
 import { useState } from 'react'
+import Link from 'next/link'
 import { supabase } from '@/lib/supabase'
 import OneSignal from 'react-onesignal'
 
 type Status = 'idle' | 'saving' | 'success' | 'success_no_push' | 'error'
+
+const STORAGE_KEY = 'my_memorial_ids'
+
+// Запоминаем на этом устройстве, какие записи создал именно этот человек,
+// чтобы в «Мои даты» показывать только их, а не записи других людей.
+function saveMyMemorialId(id: number) {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY)
+    const ids: number[] = raw ? JSON.parse(raw) : []
+    if (!ids.includes(id)) ids.push(id)
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(ids))
+  } catch (e) {
+    console.error('Не удалось сохранить id записи на устройстве:', e)
+  }
+}
 
 // Ждём, пока OneSignal реально выдаст id подписки — он появляется не сразу
 // после разрешения, а с задержкой в 1-3 секунды (та самая гонка состояний).
@@ -53,18 +69,24 @@ export default function AddDate() {
 
     const pushSubscriberId = await waitForPushSubscriptionId(8000)
 
-    const { error } = await supabase.from('memorials').insert({
-      name: name,
-      death_date: deathDate,
-      contact: contact,
-      push_subscriber_id: pushSubscriberId,
-    })
+    const { data, error } = await supabase
+      .from('memorials')
+      .insert({
+        name: name,
+        death_date: deathDate,
+        contact: contact,
+        push_subscriber_id: pushSubscriberId,
+      })
+      .select('id')
+      .single()
 
-    if (error) {
+    if (error || !data) {
       console.error('Ошибка сохранения:', error)
       setStatus('error')
       return
     }
+
+    saveMyMemorialId(data.id)
 
     setStatus(pushSubscriberId ? 'success' : 'success_no_push')
     setName('')
@@ -141,6 +163,15 @@ export default function AddDate() {
             <p className="text-red-400 text-center">
               Ошибка — проверьте, что имя и дата заполнены
             </p>
+          )}
+
+          {(status === 'success' || status === 'success_no_push') && (
+            <Link
+              href="/dates"
+              className="block w-full py-3 px-6 rounded-xl border border-white/20 text-white/80 font-medium text-center hover:bg-white/5 transition-colors"
+            >
+              Посмотреть мои даты
+            </Link>
           )}
         </div>
       </div>
