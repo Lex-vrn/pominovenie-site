@@ -46,7 +46,7 @@ function NotificationContent() {
           </a>
 
           <a href="/order" className="block w-full py-4 px-6 rounded-xl bg-[#D4AF37] text-[#2C1810] font-medium text-lg text-center hover:bg-[#F4CF57] transition-colors shadow-lg">
-            Заказать поминовение
+            Подать записку
           </a>
         </div>
       </div>
