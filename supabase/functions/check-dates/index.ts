@@ -44,6 +44,18 @@ async function sendPush(subscriberId: string, title: string, text: string) {
 }
 
 Deno.serve(async (req: Request) => {
+  // Проверяем секретный пароль — без него запрос отклоняется.
+  // Настоящий пароль знают только cron (в базе) и эта функция (в секретах).
+  const cronSecret = Deno.env.get('CRON_SECRET')
+  const providedSecret = req.headers.get('x-cron-secret')
+
+  if (!cronSecret || providedSecret !== cronSecret) {
+    return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+      status: 401,
+      headers: { 'Content-Type': 'application/json' },
+    })
+  }
+
   const supabaseUrl = Deno.env.get('SUPABASE_URL')!
   const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
   const supabase = createClient(supabaseUrl, supabaseServiceKey)
