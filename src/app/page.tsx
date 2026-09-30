@@ -15,7 +15,8 @@ export default function Home() {
             Сервис бесплатный. Подать записку и поддержать проект можно по желанию.
           </p>
         </header>
-        <div className="space-y-4 mb-8">
+
+        <div className="space-y-4 mb-6">
           <Link
             href="/add"
             className="block w-full py-4 px-6 rounded-xl bg-[#8C2F2F] text-white font-medium text-lg text-center hover:bg-[#A63939] transition-colors shadow-lg"
@@ -23,26 +24,27 @@ export default function Home() {
             📅 Напоминания
           </Link>
           <Link
-            href="/dates"
-            className="block w-full py-4 px-6 rounded-xl bg-white/10 border border-white/20 text-white font-medium text-lg text-center hover:bg-white/15 transition-colors shadow-lg"
-          >
-            📋 Мои даты
-          </Link>
-          <Link
             href="/traditions"
             className="block w-full py-4 px-6 rounded-xl bg-[#4A5D23] text-white font-medium text-lg text-center hover:bg-[#5A6D33] transition-colors shadow-lg"
           >
             📖 Традиции
           </Link>
-        </div>
-        <footer className="text-center mt-12">
           <Link
-            href="/about"
-            className="text-[#D4AF37] hover:text-[#F4CF57] underline text-sm"
+            href="/order"
+            className="block w-full py-4 px-6 rounded-xl bg-[#D4AF37] text-[#2C1810] font-medium text-lg text-center hover:bg-[#F4CF57] transition-colors shadow-lg"
           >
+            🕯 Подать записку
+          </Link>
+        </div>
+
+        <div className="flex items-center justify-center gap-6 text-sm">
+          <Link href="/dates" className="text-white/60 hover:text-white/90 underline">
+            Мои даты
+          </Link>
+          <Link href="/about" className="text-[#D4AF37] hover:text-[#F4CF57] underline">
             О проекте
           </Link>
-        </footer>
+        </div>
       </div>
     </div>
   )

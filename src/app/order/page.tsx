@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import DonationButton from '@/components/DonationButton'
 
 const types = [
   {
@@ -34,7 +35,7 @@ export default function OrderPage() {
           Это бесплатно. Пожертвование можно указать по желанию — на следующем шаге.
         </p>
 
-        <div className="space-y-4">
+        <div className="space-y-4 mb-8">
           {types.map((t) => (
             <Link
               key={t.slug}
@@ -49,9 +50,13 @@ export default function OrderPage() {
           ))}
         </div>
 
+        <div className="mb-4">
+          <DonationButton />
+        </div>
+
         <Link
           href="/"
-          className="block w-full mt-8 py-3 px-6 rounded-xl border border-white/20 text-white/70 font-medium text-center hover:bg-white/5 transition-colors"
+          className="block w-full py-3 px-6 rounded-xl border border-white/20 text-white/70 font-medium text-center hover:bg-white/5 transition-colors"
         >
           На главную
         </Link>
