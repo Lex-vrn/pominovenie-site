@@ -32,7 +32,7 @@ export default function DonationButton() {
             </p>
             <div className="bg-white rounded-xl p-3 mb-4">
               <Image
-                src="/donation-qr.png"
+                src="/idonation-qr.jpg"
                 alt="QR-код для пожертвования приходу"
                 width={280}
                 height={280}
