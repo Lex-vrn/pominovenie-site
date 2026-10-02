@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import { supabase } from '@/lib/supabase'
+import DonationButton from '@/components/DonationButton'
 
 type Status = 'idle' | 'saving' | 'success' | 'error'
 
@@ -15,7 +16,6 @@ export default function OrderForm({ orderType, recurring = false }: OrderFormPro
   const [names, setNames] = useState('')
   const [preferredDate, setPreferredDate] = useState('')
   const [contact, setContact] = useState('')
-  const [donation, setDonation] = useState('')
   const [status, setStatus] = useState<Status>('idle')
 
   const handleSubmit = async () => {
@@ -26,17 +26,10 @@ export default function OrderForm({ orderType, recurring = false }: OrderFormPro
 
     setStatus('saving')
 
-    let donationAmount: number | null = null
-    if (donation.trim() !== '') {
-      const parsed = Number(donation.replace(',', '.'))
-      if (!isNaN(parsed)) donationAmount = parsed
-    }
-
     const { error } = await supabase.from('orders').insert({
       type: orderType,
       names: names,
       contact: contact || null,
-      donation_amount: donationAmount,
       preferred_date: preferredDate || null,
       source: 'site',
     })
@@ -51,7 +44,6 @@ export default function OrderForm({ orderType, recurring = false }: OrderFormPro
     setNames('')
     setPreferredDate('')
     setContact('')
-    setDonation('')
   }
 
   if (status === 'success') {
@@ -80,7 +72,7 @@ export default function OrderForm({ orderType, recurring = false }: OrderFormPro
           {orderType}
         </h1>
         <p className="text-sm text-gray-400 mb-8 text-center">
-          Это бесплатно. Пожертвование ниже — по желанию, можно оставить пустым.
+          Это бесплатно. Пожертвование — по желанию, кнопка ниже.
         </p>
 
         <div className="space-y-6">
@@ -121,16 +113,8 @@ export default function OrderForm({ orderType, recurring = false }: OrderFormPro
           </div>
 
           <div>
-            <label className="block text-gray-300 mb-2">
-              Пожертвование, ₽ (по желанию)
-            </label>
-            <input
-              type="text"
-              value={donation}
-              onChange={(e) => setDonation(e.target.value)}
-              placeholder="Можно оставить пустым"
-              className="w-full py-3 px-4 rounded-xl bg-white/10 border border-white/20 text-white placeholder-gray-400 focus:outline-none focus:border-[#D4AF37]"
-            />
+            <p className="text-gray-300 mb-2">Пожертвование (по желанию)</p>
+            <DonationButton />
           </div>
 
           <button

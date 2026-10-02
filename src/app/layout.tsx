@@ -3,6 +3,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import OneSignalInit from "@/components/OneSignalInit";
 import SiteHeader from "@/components/SiteHeader";
+import AdminBell from "@/components/AdminBell";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -28,6 +29,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       <body className="min-h-full flex flex-col bg-[#1a0f0a]">
         <OneSignalInit />
         <SiteHeader />
+        <AdminBell />
         {children}
       </body>
     </html>
