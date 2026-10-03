@@ -91,7 +91,10 @@ export default function OrderForm({ orderType, recurring = false }: OrderFormPro
             <p className="mt-2 text-xs text-gray-400">
               О тех, кто не крещён или ушёл из жизни по своей воле, можно молиться
               дома. Как это делать, написано в разделе{' '}
-              <Link href="/traditions" className="underline hover:text-[#D4AF37]">
+              <Link
+                href="/traditions/unbaptized"
+                className="underline hover:text-[#D4AF37]"
+              >
                 «Традиции»
               </Link>
               .

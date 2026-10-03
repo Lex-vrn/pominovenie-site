@@ -21,6 +21,11 @@ const sections = [
     title: 'Радоница и субботы',
     description: 'Что это такое и когда бывает',
   },
+  {
+    slug: 'unbaptized',
+    title: 'Некрещёные и Самоубийцы',
+    description: 'Как молиться о тех, кто не был крещён или ушёл из жизни по своей воле',
+  },
 ]
 
 export default function TraditionsPage() {
