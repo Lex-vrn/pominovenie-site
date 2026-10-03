@@ -19,7 +19,7 @@ export default function OrderForm({ orderType, recurring = false }: OrderFormPro
   const [status, setStatus] = useState<Status>('idle')
 
   const handleSubmit = async () => {
-    if (!names) {
+    if (!names.trim()) {
       setStatus('error')
       return
     }
@@ -28,7 +28,7 @@ export default function OrderForm({ orderType, recurring = false }: OrderFormPro
 
     const { error } = await supabase.from('orders').insert({
       type: orderType,
-      names: names,
+      names: names.trim(),
       contact: contact || null,
       preferred_date: preferredDate || null,
       source: 'site',
@@ -77,16 +77,25 @@ export default function OrderForm({ orderType, recurring = false }: OrderFormPro
 
         <div className="space-y-6">
           <div>
-            <label className="block text-gray-300 mb-2">
-              Имя (или имена через запятую)
+            <label htmlFor="names" className="block text-gray-300 mb-2">
+              Имена крещёных в Православной Церкви, каждое с новой строки
             </label>
-            <input
-              type="text"
+            <textarea
+              id="names"
+              rows={4}
               value={names}
               onChange={(e) => setNames(e.target.value)}
-              placeholder="Например: Иоанна, Марии"
-              className="w-full py-3 px-4 rounded-xl bg-white/10 border border-white/20 text-white placeholder-gray-400 focus:outline-none focus:border-[#D4AF37]"
+              placeholder={'Например:\nИоанна\nМарии'}
+              className="w-full py-3 px-4 rounded-xl bg-white/10 border border-white/20 text-white placeholder-gray-400 focus:outline-none focus:border-[#D4AF37] resize-y"
             />
+            <p className="mt-2 text-xs text-gray-400">
+              О тех, кто не крещён или ушёл из жизни по своей воле, можно молиться
+              дома. Как это делать, написано в разделе{' '}
+              <Link href="/traditions" className="underline hover:text-[#D4AF37]">
+                «Традиции»
+              </Link>
+              .
+            </p>
           </div>
 
           <div>
