@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
-import { supabase } from '@/lib/supabase'
 import { calculateMemorialDates, formatDate } from '@/lib/dates'
 
 interface Memorial {
@@ -11,7 +10,12 @@ interface Memorial {
   death_date: string
 }
 
-const STORAGE_KEY = 'my_memorial_ids'
+interface SavedMemorial {
+  id: number
+  token: string
+}
+
+const STORAGE_KEY = 'my_memorials'
 
 export default function MyDates() {
   const [memorials, setMemorials] = useState<Memorial[]>([])
@@ -20,27 +24,31 @@ export default function MyDates() {
   useEffect(() => {
     const fetchMemorials = async () => {
       // Берём только те записи, которые создал этот человек на этом устройстве
-      let ids: number[] = []
+      let items: SavedMemorial[] = []
       try {
         const raw = localStorage.getItem(STORAGE_KEY)
-        ids = raw ? JSON.parse(raw) : []
+        items = raw ? JSON.parse(raw) : []
       } catch {
-        ids = []
+        items = []
       }
 
-      if (ids.length === 0) {
+      if (items.length === 0) {
         setLoading(false)
         return
       }
 
-      const { data, error } = await supabase
-        .from('memorials')
-        .select('id, name, death_date')
-        .in('id', ids)
-        .order('created_at', { ascending: false })
-
-      if (!error && data) {
-        setMemorials(data)
+      try {
+        const res = await fetch('/api/memorials/mine', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ items }),
+        })
+        if (res.ok) {
+          const data = await res.json()
+          setMemorials(data.memorials ?? [])
+        }
+      } catch (e) {
+        console.error('Ошибка загрузки дат:', e)
       }
       setLoading(false)
     }
