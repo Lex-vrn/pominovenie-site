@@ -12,6 +12,8 @@ interface SavedMemorial {
 }
 
 const STORAGE_KEY = 'my_memorials'
+const PUSH_PERMISSION_TIMEOUT_MS = 30000
+const PUSH_ID_TIMEOUT_MS = 8000
 
 // Запоминаем на этом устройстве, какие записи создал именно этот человек,
 // чтобы в «Мои даты» показывать только их, а не записи других людей.
@@ -25,6 +27,29 @@ function saveMyMemorial(item: SavedMemorial) {
   } catch (e) {
     console.error('Не удалось сохранить запись на устройстве:', e)
   }
+}
+
+// Ждёт результат, но не дольше заданного времени. При ошибке или зависании
+// возвращает null — чтобы сбой OneSignal не блокировал сохранение даты.
+function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T | null> {
+  return new Promise((resolve) => {
+    const timer = setTimeout(() => resolve(null), ms)
+    promise.then(
+      (value) => {
+        clearTimeout(timer)
+        resolve(value)
+      },
+      () => {
+        clearTimeout(timer)
+        resolve(null)
+      }
+    )
+  })
+}
+
+// OneSignal настроен на боевой адрес сайта и не работает на локальных адресах
+function isLocalAddress(): boolean {
+  return /^(localhost|127\.|192\.168\.|10\.)/.test(window.location.hostname)
 }
 
 // Ждём, пока OneSignal реально выдаст id подписки — он появляется не сразу
@@ -52,6 +77,21 @@ async function waitForPushSubscriptionId(timeoutMs = 8000): Promise<string | nul
   })
 }
 
+async function getPushSubscriberId(): Promise<string | null> {
+  if (isLocalAddress()) return null
+
+  try {
+    await withTimeout(
+      OneSignal.Notifications.requestPermission(),
+      PUSH_PERMISSION_TIMEOUT_MS
+    )
+    return await waitForPushSubscriptionId(PUSH_ID_TIMEOUT_MS)
+  } catch (e) {
+    console.error('Ошибка OneSignal:', e)
+    return null
+  }
+}
+
 export default function AddDate() {
   const [name, setName] = useState('')
   const [deathDate, setDeathDate] = useState('')
@@ -67,15 +107,8 @@ export default function AddDate() {
     setStatus('saving')
 
     try {
-      await OneSignal.Notifications.requestPermission()
-    } catch (e) {
-      console.error('Ошибка запроса разрешения на уведомления:', e)
-    }
+      const pushSubscriberId = await getPushSubscriberId()
 
-    const pushSubscriberId = await waitForPushSubscriptionId(8000)
-
-    let saved: SavedMemorial | null = null
-    try {
       const res = await fetch('/api/memorials', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -86,25 +119,24 @@ export default function AddDate() {
           push_subscriber_id: pushSubscriberId,
         }),
       })
-      if (res.ok) {
-        const data = await res.json()
-        saved = { id: data.id, token: data.token }
+
+      if (!res.ok) {
+        console.error('Сервер не сохранил дату, статус:', res.status)
+        setStatus('error')
+        return
       }
+
+      const data = await res.json()
+      saveMyMemorial({ id: data.id, token: data.token })
+
+      setStatus(pushSubscriberId ? 'success' : 'success_no_push')
+      setName('')
+      setDeathDate('')
+      setContact('')
     } catch (e) {
       console.error('Ошибка сохранения:', e)
-    }
-
-    if (!saved) {
       setStatus('error')
-      return
     }
-
-    saveMyMemorial(saved)
-
-    setStatus(pushSubscriberId ? 'success' : 'success_no_push')
-    setName('')
-    setDeathDate('')
-    setContact('')
   }
 
   return (
